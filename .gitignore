@@ -8,3 +8,5 @@ pycache/
 
 .ipynb_checkpoints/
 .ipynb_checkpoints
+
+run jupyterlab.bat
