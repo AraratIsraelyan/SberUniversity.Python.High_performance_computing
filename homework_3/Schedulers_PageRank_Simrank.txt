@@ -1,0 +1,836 @@
+Лирическое отступление о
+планировщиках задач. Задачи с
+графами
+Серегй Матвеев, Сергей Рыкованов
+
+Plan for today
+1. Difference between stand-alone server and computing cluster
+2. Overview of workload schedulers and their logical setup
+(Torque PBS, SLURM etc).
+• General logic
+• Example: Torque PBS
+• Example: SLURM
+• Schedulers’ commands
+• Practical implementation of the simplest SLURM script.
+
+3. Pagerank algorithm
+• Ranking problem, graph of connections
+• Adjacency matrix, reminder on linear algerbra
+• Perron-Frobenius theorem, numerical method
+• Damping for generic case and some applications
+• Dynamical Pagerank
+• SimRank model
+• Hometask
+
+Our sample cloud platform for today
+https://mcs.mail.ru
+
+Computing cluster organization
+
+What may be available at your work?
+
+• Ask your professor/collaborators/colleagues/supervisor (and
+ask one more time) for group resources. Quite many exploit
+their own servers/mini-clusters
+• For example we have some at Skoltech/MSU/RAS available
+for collaborations...
+• Submit requests to other academic places: Lomonosov MSU,
+Russian Academy of Science, MIPT
+• Industry always have good resources, e.g. MailRu Group ,
+Sber, MTS
+
+Workload schedulers
+In case of single server, resources are under control of OS and its
+scheduler. But at cluster computing system each node is server
+itself.
+Hence it is necessary to have application controlling allocation of
+computing resources on higher level. What should it be able to do?
+• Provide monitoring: availability and power status
+• Allow user to allocate and release resources
+• Avoid conflicts in process
+Go to
+https://en.wikipedia.org/wiki/Comparison_of_cluster_software
+for MORE information about schedulers. There are many...
+
+Workload schedulers
+
+Thus, logically we need commands which can be executed at
+master node and control state of worker nodes. What are they?
+• Check system state and details about it: list of jobs, state of
+nodes, jobs distribution (user level)
+• Submit and close jobs (user level)
+• Priviledged commands for fix of collisions in system (admin
+level)
+
+Example 1. Torque PBS
+
+Example 1. Torque PBS
+
+Terascale Open-Source Resource and QUEue Manager
+• Check system state and details about it: qstat
+• Submit and close jobs: qsub, qdel
+Let’s start from PBS.
+Job submission can be done via submission of bash-script calling
+your program for execution.
+You also have to give details about required resources for allocation.
+
+Example 1. Torque PBS
+• Trivial example of interactive PBS job submission:
+echo "sleep 10; echo helloworld"| qsub -N Helloworld -l
+nodes=1:ppn=1:pmem=2Gb
+As a result you will get files:
+Helloworld.eJOB-NUMBER – standard error stream
+Helloworld.oJOB-NUMBER – standard output stream
+• Trivial example of PBS-script
+submit.qs
+#!/bin/bash
+#PBS -l nodes=8:ppn=4:mem=2Gb
+#PBS -l walltime=40:00
+echo helloworld
+
+• qsub submit.qs
+
+Example 2. SLURM
+
+Example 2. SLURM
+
+Simple Linux Utility for Resource Management
+• Monitoring: sinfo, squeue
+• Submit job/script: srun, sbatch. Close job: scancel
+• Trivial example of interactive SLURM job submission:
+srun echo Helloworld
+• Trivial example of SLURM-script
+submit.sl
+#!/bin/bash
+echo helloworld
+
+• sbatch -N 1 -c 16 -p MMM submit.sl
+
+Time to try hands-on and collect some measurements...
+
+Environment modules
+
+For typical choice of user environment definitions it is possible to
+get ready-made environment modules from system administrators
+• module avail
+• module load
+• module list
+• module unload
+• module purge
+
+Pagerank intro
+A ranking is a relationship between a set of items such that, for
+any two items, the first is either ’ranked higher than’, ’ranked lower
+than’ or ’ranked equal to’ the second. E.g.
+• Credit ranking/rating
+• FIFA ranking
+• Ranking of students
+• H-index
+• ranking of the websites
+• and other cases
+One possible approach solving ranking problem is a famous
+Pagerank method co-authored by S. Brin and L. Page. Once upon a
+time those guys were PhD-students.1
+1
+
+Page, L., Brin, S., Motwani, R., & Winograd, T. (1999). The PageRank
+citation ranking: Bringing order to the web. Stanford InfoLab.
+
+Simplified Pagerank
+Naive ranking: rank with number of incoming links.
+Better way is:
+X PR(v )
+PR(u) =
+,
+L(v )
+v ∈Bu
+
+where
+• Bu is the set containing all pages linking to page u
+• L(v ) number of links from page v . Ok... also damping
+(suddenly user also can randomly go to any page):
+PR(u) =
+
+d X PR(v )
+1−d
++
+,
+N
+N
+L(v )
+v ∈Bu
+
+in WiKi-example d = 0.85 is said to be typical.
+
+Graphs reminder
+
+Graph and its adjacency matrix
+Let G be a graph with n nodes (ui ) and some edges(vi,j ). Then one
+can generate n × n matrix A such that:
+
+wi,j if vi,j exists
+Ai,j =
+0
+else
+Interesting facts:
+• G1 and G2 equivalent if there exists permutation matrix P:
+A1 = P −1 A2 P
+• (Am )i,j ̸= 0 equals number of paths with m edges from ui to
+uj (try matmul for some sample graphs).
+
+Example for dummies (directed graph)
+
+Ivan
+Strela
+Lyagushka
+Kozha
+A=
+Yaga
+Vasilisa
+Lebed’
+Koshey
+
+|
+|
+|
+|
+|
+|
+|
+|
+
+0
+1
+1
+1
+0
+0
+0
+2
+
+0
+0
+1
+0
+0
+0
+0
+0
+
+0
+0
+0
+0
+0
+1
+0
+0
+
+0
+0
+0
+0
+0
+0
+0
+0
+
+1
+0
+0
+0
+0
+0
+0
+0
+
+0
+0
+0
+1
+0
+0
+1
+0
+
+0
+0
+0
+0
+0
+0
+0
+1
+
+0|
+0|
+0|
+0|
+0|
+0|
+0|
+0|
+
+Example for dummies (directed graph)
+
+Ivan
+Strela
+Lyagushka
+Kozha
+A=
+Yaga
+Vasilisa
+Lebed’
+Koshey
+
+|
+|
+|
+|
+|
+|
+|
+|
+
+0.0
+0.2
+0.2
+0.2
+0.0
+0.0
+0.0
+0.4
+
+0
+0
+1
+0
+0
+0
+0
+0
+
+0
+0
+0
+0
+0
+1
+0
+0
+
+0
+0
+0
+0
+0
+0
+0
+0
+
+1
+0
+0
+0
+0
+0
+0
+0
+
+0.0
+0.0
+0.0
+0.5
+0.0
+0.0
+0.5
+0.0
+
+0
+0
+0
+0
+0
+0
+0
+1
+
+0|
+0|
+0|
+0|
+0|
+0|
+0|
+0|
+
+Some linear algebra...
+v is an eigenvector of A with eigenvalue λ if
+A · v = λ · v.
+Perron-Frobenius theorem:
+Let A be a matrix with all-positive real elements, then
+• The largest eigenvalue r is real and positive
+• It is a prime root of characteristic polynomial
+• Corresponding eigenvector has all-positive entries (!)
+P
+P
+• min j ai,j ≤ r ≤ max j ai,j
+Very important theorem!
+Let us normalize our matrix columnwise...
+
+Irreducible matrix
+
+• Matrix A n × n is irreducible if for some permutation matrix P:
+P T AP
+is block upper-triangular. It is equivalent to fact that
+• the digraph associated to A is strongly connected.
+• The Perron-Frobenius theory gives more information about
+irreducible matrices.
+
+Some more information
+
+We seek to have a funny property:
+u = [1, 1, . . . 1]
+u·A=u
+Why our sample matrix is bad???
+
+Some more information
+After normalization of columns of A we seek to have funny property:
+u = [1, 1, . . . 1]
+u·A=u
+Why our sample matrix is bad???
+We need damping!
+Remember:
+PR(u) =
+
+d X PR(v )
+1−d
++
+,
+N
+N
+L(v )
+v ∈Bu
+
+Some more information
+After normalization of columns of A we have funny property:
+u = [1, 1, . . . 1]
+u·A=u
+Why our sample matrix is bad???
+We need damping 2 !
+For matrices:
+A → Â =
+
+1−d
+· Ê + d · A,
+N
+
+matrix Ê – elementwise ones.
+
+2
+
+still does not help if our matrix has pure zero column/row
+
+Fast matvec for low-rank matrix
+
+
+1
+1
+
+Ê = 
+1
+1
+1
+
+1
+1
+1
+1
+1
+
+1
+1
+1
+1
+1
+
+1
+1
+1
+1
+1
+
+
+1
+1
+
+1
+
+1
+1
+
+Fast matvec for low-rank matrix
+
+Rank-1 matrix
+
+1
+1
+
+Ê = 
+1
+1
+1
+
+1
+1
+1
+1
+1
+
+1
+1
+1
+1
+1
+
+1
+1
+1
+1
+1
+
+
+1
+1
+
+T
+1
+ = [1 1 1 1 1] [1 1 1 1 1]
+1
+1
+
+Fast matvec for low-rank matrix
+
+
+1
+2
+
+T̂ = 
+3
+4
+5
+What is rank of this matrix?
+
+2
+3
+4
+5
+6
+
+3
+4
+5
+6
+7
+
+4
+5
+6
+7
+8
+
+
+5
+6
+
+7
+
+8
+9
+
+
+1
+2
+
+T̂ = 
+3
+4
+5
+
+2
+3
+4
+5
+6
+
+3
+4
+5
+6
+7
+
+4
+5
+6
+7
+8
+
+
+5
+6
+
+7
+
+8
+9
+
+What is rank of this matrix?
+rank(T ) = 2
+. Rank-R matrix:
+Ai,j =
+
+R
+X
+α=1
+
+ui · vj = U · V
+
+Fast matvec for low-rank matrix
+A = U · VT.
+
+• Singular Value Decomposition
+• MaxVol principle and cross approximation (!)
+
+Norms and distanses
+
+• ρ(·, ·) – distanse is correspongs to some properties,
+• || · || – norm, if corresponds to some more properies,
+P
+• ||x||p = ( i |xi |p )1/p – Hölder norms, in particular
+• ||x||p – Euclidian norm (cblas_dnrm2)
+
+Low-rank matrices and least squares problem
+
+||Ax − b||2 = ||UΣV T x − b||2 = ||Σy − U T b||2
+y = Σ† U T b
+x = V Σ† U T b.
+More in numerical linear algebra courses...
+
+Fixed-point iteration
+A · xi = yi ,
+yi
+xi+1 =
+.
+||yi ||
+Examples of norms:
+||x||1 =
+
+X
+
+|xi |,
+
+i
+
+and
+||x||2 =
+
+X
+
+|xi |2 ,
+
+i
+
+Stopping criteria:
+||xk − xk−1 || ≤ ε
+Such sequence of iterations leads to desired result 3
+3
+
+See any book on Numerical Linear Algebra
+
+Test case and discussion (see WiKi)
+
+Page
+Inputs
+
+B
+7
+
+E
+6
+
+A
+1
+
+D
+1
+
+C
+1
+
+F
+1
+
+G
+0
+
+H
+0
+
+I
+0
+
+J
+0
+
+K
+0
+
+Ok, what about our example?
+
+1. Koshey: 61.99 %
+2. kozha: 14.32%
+3. lebed’: 14.01%
+4. Vasilisa: 6.94%
+5. Lyagushka: 1.85%
+6. Ivan: 0.41%
+7. Strela: 0.4%
+8. Yaga: 0.08%
+ε = 0.01
+
+• Koshey: 59.86%
+• kozha: 15.17%
+• lebed: 14.87%
+• Vasilisa: 7.43%
+• Lyagushka: 1.85%
+• Ivan: 0.37%
+• Strela: 0.37%
+• Yaga: 0.07%
+ε = 10−5
+
+Sparse matrix
+
+• ijk-format
+• CSR-format
+• CSC-format
+
+Compressed row format
+
+Some libraries and soft...
+
+• lapack and lapacke (see also intel MKL)
+• umfpack, sparskit, eigen
+• python-numpy, python-scipy
+
+Extension: Pagerank with trends
+Instead of usual PR, with random uniform teleportation weight ε
+for each vertex we assume that there is some distribution vi (trends
+hypothesis).
+Hence,
+x k+1 = (1 − ε)Px k + εv = P̃x k ,
+where P̃ = (1 − ε)P + εv 1T .
+Stationary weighted Pagerank: The x ∗ is stationary if x ∗ = Px ∗ . It
+is an eigenvector of P for the random motion. In case of PageRank
+x ∗ it satisfies an equation:
+(I − (1 − ε)P)x = εv .
+
+Extension: time-dependent Pagerank
+Пусть ∆t = 1:
+x k+1 − x k = (1 − ε)Px k + εv − x k = εv − (I − (1 − ε)P)x k .
+получается системка дифференциальных уравнений:
+dx(t)/dt = εv − (I − (1 − ε)P)x(t)
+с вектором “телепортаций”, имеем более общее выражение:
+x ′ (t) = εv (t) − (I − (1 − ε)P)x(t).
+Аналитически:
+Zt
+x(t) = exp(−(I −(1−ε)P)t)x(0)+ε
+
+exp(−(I −αP)(t−τ ))v (τ )dτ.
+0
+
+Но можно и попроще через метод Эйлера:
+x(t + h) = x(t) + h[εv (t) − (I − (1 − ε)P)x(t)]
+2
+Он устойчив при h <
+. Соответственно, при h < 1
+1 + (1 − ε)
+
+Simrank: similar vertices
+
+Simrank: more equations
+
+s(Vi , Vj ) =
+
+
+
+
+
+
+
+
+
+
+1,
+
+если Vi = Vj ,
+
+0,
+
+если |Ii | = 0 или |Ij | = 0,
+
+
+
+
+P P
+c
+
+
+
+s(Vk , Vl ),
+ |I | · |I | ·
+
+иначе,
+
+i
+
+j
+
+k∈Ii l∈Ij
+
+Формально это система линейных уравнений с N 2
+неизвестными s(Vi , Vj ).
+В лоб решать через метод Гаусса придётся за
+O((N 2 )3 ) = O(N 6 ) действий. ДОЛГО!
+
+Simrank: how it works
+
+Simrank: matrix form
+
+
+
+S = cA⊤ SA − c · diag A⊤ SA + I .
+Задача в матричных обозначениях сама приводит к итерациям
+
+
+Sk+1 = F(Sk ) = cA⊤ Sk A − c · diag A⊤ Sk A + I , S0 = I .
+|
+{z
+}
+F(S)
+
+Сложность итерации можно оценить в худшем случае через
+O(N 3 ), но матрица связности – разреженная, этим тоже нужно
+пользоваться. Через CSR-формат!
+
+Hometask
+
+• Скачать и приготовить датасет Московского или
+Лондонского метро для решения стандартной задачи
+Pagerank. Вывести топ-5 станций подземки по такому
+ранжированию. (50 %)
+• Применить метод Simrank к графу Московской подземки
+(30 %)
+• Сгенерировать случайные разреженные графы и сравнить
+производительность реализаций Pagerank с CSR-форматом
+и без него. (20 %)
+
+
